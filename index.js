@@ -36,6 +36,18 @@ exports.AudioChannelManager = AudioChannelManager
 inherits(AudioBroadcaster, EventEmitter)
 inherits(AudioListener, EventEmitter)
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+var DEFAULT_SAMPLE_RATE = 48000
+var DEFAULT_FRAME_SIZE = 20 // ms
+var DEFAULT_BITRATE = 24000 // bps
+var DEFAULT_VAD_THRESHOLD = 0.01
+var DEFAULT_JITTER_BUFFER = 40 // ms
+var DEFAULT_COMPRESSOR_THRESHOLD = -12 // dB
+var DEFAULT_COMPRESSOR_RATIO = 12
+var HANGOVER_FRAMES = 15 // Keep sending for 15 frames (300ms) after speech stops
+var SCRIPT_PROCESSOR_BUFFER = 4096
+var ANALYSER_FFT_SIZE = 2048
+
 // Default worklet URLs (relative to page, can be overridden via opts)
 var DEFAULT_CAPTURE_WORKLET = '/worklets/capture-processor.js'
 var DEFAULT_PLAYBACK_WORKLET = '/worklets/playback-processor.js'
@@ -63,17 +75,17 @@ function AudioBroadcaster (node, opts) {
 
   opts = opts || {}
   this.node = node
-  this.sampleRate = opts.sampleRate || 48000
-  this.frameSize = opts.frameSize || 20
-  this.bitrate = opts.bitrate || 24000
+  this.sampleRate = opts.sampleRate || DEFAULT_SAMPLE_RATE
+  this.frameSize = opts.frameSize || DEFAULT_FRAME_SIZE
+  this.bitrate = opts.bitrate || DEFAULT_BITRATE
   this.vadEnabled = opts.vadEnabled !== false
-  this.vadThreshold = opts.vadThreshold || 0.01
+  this.vadThreshold = opts.vadThreshold || DEFAULT_VAD_THRESHOLD
   this.workletUrl = opts.workletUrl || DEFAULT_CAPTURE_WORKLET
 
   // Compressor/gain options
   this.compressorEnabled = opts.compressor || false
-  this.compressorThreshold = opts.compressorThreshold != null ? opts.compressorThreshold : -12
-  this.compressorRatio = opts.compressorRatio || 12
+  this.compressorThreshold = opts.compressorThreshold != null ? opts.compressorThreshold : DEFAULT_COMPRESSOR_THRESHOLD
+  this.compressorRatio = opts.compressorRatio || DEFAULT_COMPRESSOR_RATIO
   this.inputGain = opts.inputGain || 1.0
   this.agcEnabled = opts.agcEnabled || false
 
@@ -198,10 +210,9 @@ AudioBroadcaster.prototype._setupCaptureScriptProcessor = function (source) {
 
   // VAD state
   this._vadHangover = 0
-  var HANGOVER_FRAMES = 15
 
-  // ScriptProcessorNode with 4096 buffer
-  this._scriptNode = this._audioContext.createScriptProcessor(4096, 1, 1)
+  // ScriptProcessorNode
+  this._scriptNode = this._audioContext.createScriptProcessor(SCRIPT_PROCESSOR_BUFFER, 1, 1)
 
   this._scriptNode.onaudioprocess = function (evt) {
     var input = evt.inputBuffer.getChannelData(0)
@@ -407,7 +418,7 @@ function AudioListener (node, opts) {
 
   opts = opts || {}
   this.node = node
-  this.jitterBuffer = opts.jitterBuffer || 40
+  this.jitterBuffer = opts.jitterBuffer || DEFAULT_JITTER_BUFFER
   this.workletUrl = opts.workletUrl || DEFAULT_PLAYBACK_WORKLET
 
   this._channelManager = new AudioChannelManager(node, { relay: true })
@@ -432,7 +443,7 @@ AudioListener.prototype.start = async function () {
   this._channelManager.start()
 
   // Create audio context
-  this._audioContext = new AudioContext({ sampleRate: 48000 })
+  this._audioContext = new AudioContext({ sampleRate: DEFAULT_SAMPLE_RATE })
 
   // Resume audio context if suspended (browsers require user gesture)
   if (this._audioContext.state === 'suspended') {
@@ -491,7 +502,7 @@ AudioListener.prototype._setupScriptProcessorFallback = function () {
 
   // ScriptProcessorNode with 4096 buffer size
   // Note: ScriptProcessorNode is deprecated but widely supported
-  this._scriptNode = this._audioContext.createScriptProcessor(4096, 0, 1)
+  this._scriptNode = this._audioContext.createScriptProcessor(SCRIPT_PROCESSOR_BUFFER, 0, 1)
 
   this._scriptNode.onaudioprocess = function (evt) {
     var output = evt.outputBuffer.getChannelData(0)
@@ -595,7 +606,7 @@ AudioListener.prototype._createDecoder = async function () {
 
       await decoder.configure({
         codec: 'opus',
-        sampleRate: 48000,
+        sampleRate: DEFAULT_SAMPLE_RATE,
         numberOfChannels: 1
       })
 
@@ -611,7 +622,7 @@ AudioListener.prototype._createDecoder = async function () {
   try {
     var OpusDecoder = OpusDecoderLib.OpusDecoder
     var wasmDecoder = new OpusDecoder({
-      sampleRate: 48000,
+      sampleRate: DEFAULT_SAMPLE_RATE,
       channels: 1
     })
     await wasmDecoder.ready
