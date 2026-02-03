@@ -89,35 +89,8 @@ AudioBroadcaster.prototype.start = async function () {
   // Create audio context
   this._audioContext = new AudioContext({ sampleRate: this.sampleRate })
 
-  // Load capture worklet
-  await this._audioContext.audioWorklet.addModule(this.workletUrl)
-
-  // Create worklet node
-  this._workletNode = new AudioWorkletNode(this._audioContext, 'capture-processor', {
-    processorOptions: {
-      frameSize: this.frameSize,
-      vadEnabled: this.vadEnabled,
-      vadThreshold: this.vadThreshold
-    }
-  })
-
   // Initialize encoder
   this._encoder = await this._createEncoder()
-
-  // Handle messages from worklet
-  this._workletNode.port.onmessage = function (evt) {
-    if (evt.data.type === 'frame') {
-      self._onFrame(evt.data.samples)
-    } else if (evt.data.type === 'vad') {
-      var wasSpeaking = self._speaking
-      self._speaking = evt.data.speaking
-      if (self._speaking && !wasSpeaking) {
-        self.emit('speaking')
-      } else if (!self._speaking && wasSpeaking) {
-        self.emit('silent')
-      }
-    }
-  }
 
   // Connect audio graph - always create gain and compressor for live control
   var source = this._audioContext.createMediaStreamSource(this._stream)
@@ -135,11 +108,113 @@ AudioBroadcaster.prototype.start = async function () {
   this._compressorNode.attack.value = 0.003
   this._compressorNode.release.value = 0.1
 
-  // Chain: source → gain → compressor → worklet
+  // Check for AudioWorklet support
+  if (this._audioContext.audioWorklet) {
+    // Load capture worklet
+    await this._audioContext.audioWorklet.addModule(this.workletUrl)
+
+    // Create worklet node
+    this._workletNode = new AudioWorkletNode(this._audioContext, 'capture-processor', {
+      processorOptions: {
+        frameSize: this.frameSize,
+        vadEnabled: this.vadEnabled,
+        vadThreshold: this.vadThreshold
+      }
+    })
+
+    // Handle messages from worklet
+    this._workletNode.port.onmessage = function (evt) {
+      if (evt.data.type === 'frame') {
+        self._onFrame(evt.data.samples)
+      } else if (evt.data.type === 'vad') {
+        var wasSpeaking = self._speaking
+        self._speaking = evt.data.speaking
+        if (self._speaking && !wasSpeaking) {
+          self.emit('speaking')
+        } else if (!self._speaking && wasSpeaking) {
+          self.emit('silent')
+        }
+      }
+    }
+
+    // Chain: source → gain → compressor → worklet
+    source.connect(this._gainNode)
+    this._gainNode.connect(this._compressorNode)
+    this._compressorNode.connect(this._workletNode)
+  } else {
+    // Fallback: ScriptProcessorNode for browsers without AudioWorklet
+    console.warn('[audio] AudioWorklet not supported, using ScriptProcessorNode fallback for capture')
+    this._setupCaptureScriptProcessor(source)
+  }
+  // Don't connect to destination (no local monitoring)
+}
+
+/**
+ * Setup ScriptProcessorNode fallback for capture (Firefox mobile)
+ */
+AudioBroadcaster.prototype._setupCaptureScriptProcessor = function (source) {
+  var self = this
+  var sampleRate = this._audioContext.sampleRate
+  var samplesPerFrame = Math.floor(sampleRate * this.frameSize / 1000)
+
+  // Accumulation buffer for frames
+  this._captureBuffer = new Float32Array(samplesPerFrame)
+  this._captureBufferIndex = 0
+
+  // VAD state
+  this._vadHangover = 0
+  var HANGOVER_FRAMES = 15
+
+  // ScriptProcessorNode with 4096 buffer
+  this._scriptNode = this._audioContext.createScriptProcessor(4096, 1, 1)
+
+  this._scriptNode.onaudioprocess = function (evt) {
+    var input = evt.inputBuffer.getChannelData(0)
+
+    for (var i = 0; i < input.length; i++) {
+      self._captureBuffer[self._captureBufferIndex++] = input[i]
+
+      // Frame complete?
+      if (self._captureBufferIndex >= samplesPerFrame) {
+        // Calculate RMS for VAD
+        var sumSquares = 0
+        for (var j = 0; j < self._captureBuffer.length; j++) {
+          sumSquares += self._captureBuffer[j] * self._captureBuffer[j]
+        }
+        var rms = Math.sqrt(sumSquares / self._captureBuffer.length)
+        var isSpeech = rms >= self.vadThreshold
+
+        // VAD logic with hangover
+        if (isSpeech) {
+          self._vadHangover = HANGOVER_FRAMES
+          if (!self._speaking) {
+            self._speaking = true
+            self.emit('speaking')
+          }
+        } else if (self._vadHangover > 0) {
+          self._vadHangover--
+        } else if (self._speaking) {
+          self._speaking = false
+          self.emit('silent')
+        }
+
+        // Send frame if VAD disabled or speaking
+        if (!self.vadEnabled || self._speaking || self._vadHangover > 0) {
+          var frame = new Float32Array(self._captureBuffer)
+          self._onFrame(frame)
+        }
+
+        self._captureBufferIndex = 0
+      }
+    }
+  }
+
+  // Chain: source → gain → compressor → scriptProcessor
   source.connect(this._gainNode)
   this._gainNode.connect(this._compressorNode)
-  this._compressorNode.connect(this._workletNode)
-  // Don't connect to destination (no local monitoring)
+  this._compressorNode.connect(this._scriptNode)
+  // Connect to destination (required for ScriptProcessorNode to work, but silent)
+  this._scriptNode.connect(this._audioContext.destination)
 }
 
 /**
@@ -156,6 +231,12 @@ AudioBroadcaster.prototype.stop = function () {
   if (this._stream) {
     this._stream.getTracks().forEach(function (track) { track.stop() })
     this._stream = null
+  }
+
+  // Disconnect script processor if using fallback
+  if (this._scriptNode) {
+    this._scriptNode.disconnect()
+    this._scriptNode = null
   }
 
   // Close audio context

@@ -554,13 +554,20 @@ startBtn.onclick = async function () {
       await audio.start()
 
       // Set up analyser for listener output meter
-      if (audio._audioContext && audio._workletNode) {
+      // Handle both AudioWorklet and ScriptProcessorNode fallback
+      var outputNode = audio._workletNode || audio._scriptNode
+      if (audio._audioContext && outputNode) {
         outputAnalyser = audio._audioContext.createAnalyser()
         outputAnalyser.fftSize = 2048
         outputAnalyserData = new Float32Array(outputAnalyser.fftSize)
-        audio._workletNode.connect(outputAnalyser)
+        outputNode.connect(outputAnalyser)
         startVisualization()
       }
+
+      // Handle unsupported codec warning
+      audio.on('unsupported', function (info) {
+        updateStatus('Warning: ' + info.codec + ' not supported')
+      })
 
       updateStatus('Listening...')
     }
