@@ -74,12 +74,12 @@ class PlaybackProcessor extends AudioWorkletProcessor {
         this.readIndex = (this.readIndex + 1) % this.ringBuffer.length
         this.bufferedSamples--
       } else {
-        // Underrun - output silence and start buffering again
+        // Underrun - output silence
         channel[j] = 0
         this.underruns++
 
-        // After too many underruns, go back to buffering mode
-        if (this.underruns > 10) {
+        // After many underruns, go back to buffering mode
+        if (this.underruns > 50) {
           this.buffering = true
           this.underruns = 0
         }

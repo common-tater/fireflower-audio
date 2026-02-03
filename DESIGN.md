@@ -257,9 +257,26 @@ listener.on('drop', () => {});         // Frame dropped (jitter)
 
 Fallback to PCM encoding for browsers without WebCodecs.
 
+### 8. Disable Browser Audio Processing
+
+**Problem**: Browser's AGC (Automatic Gain Control), noise suppression, and echo cancellation cause severe artifacts on sustained sounds — volume pulses in rapid waves (tremolo effect).
+
+**Solution**: Disable all processing for broadcast audio:
+```javascript
+navigator.mediaDevices.getUserMedia({
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false
+  }
+})
+```
+
+**Why**: These features are designed for voice calls where both parties talk. For one-way broadcast, they fight against the audio and cause pumping artifacts. Raw audio is better for broadcast quality.
+
 ## Future Considerations
 
 - **WebTransport**: Would fix server transport TCP limitation (QUIC supports unreliable streams)
 - **Multiple broadcasters**: Currently single-broadcaster design; multi-party would need mixing
-- **Echo cancellation**: Browser's built-in AEC via getUserMedia constraints
-- **Noise suppression**: Browser's built-in NS via getUserMedia constraints
+- **Optional echo cancellation**: Could be user-configurable for bidirectional use cases
+- **Optional noise suppression**: Could be user-configurable for noisy environments

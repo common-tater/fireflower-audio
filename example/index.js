@@ -122,7 +122,7 @@ startBtn.onclick = async function () {
     } else {
       updateStatus('Starting listener...')
       audio = new AudioListener(node, {
-        jitterBuffer: 40
+        jitterBuffer: 60 // 60ms jitter buffer
       })
 
       audio.on('audio', function () {

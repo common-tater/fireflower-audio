@@ -45,6 +45,7 @@ function AudioBroadcaster (node, opts) {
   this._encoder = null
   this._started = false
   this._speaking = false
+  this._sampleCount = 0 // Track samples for timestamp calculation
 }
 
 /**
@@ -61,13 +62,14 @@ AudioBroadcaster.prototype.start = async function () {
   this._channelManager.start()
 
   // Request microphone access
+  // Disable browser audio processing to avoid AGC pumping/tremolo artifacts
   this._stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       sampleRate: this.sampleRate,
       channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false
     }
   })
 
@@ -198,17 +200,19 @@ AudioBroadcaster.prototype._onFrame = function (samples) {
   if (!this._encoder) return
 
   if (this._encoder._isOpus) {
-    // WebCodecs encoder
+    // WebCodecs encoder - use sample-based timestamp, not wall clock
+    var timestampMicros = Math.floor(this._sampleCount * 1000000 / this.sampleRate)
     var data = new AudioData({
       format: 'f32',
       sampleRate: this.sampleRate,
       numberOfFrames: samples.length,
       numberOfChannels: 1,
-      timestamp: performance.now() * 1000, // microseconds
+      timestamp: timestampMicros,
       data: samples
     })
     this._encoder.encode(data)
     data.close()
+    this._sampleCount += samples.length
   } else {
     // PCM fallback
     this._encoder.encode({ data: samples })
@@ -263,6 +267,7 @@ function AudioListener (node, opts) {
   this._workletNode = null
   this._decoder = null
   this._started = false
+  this._frameCount = 0 // Track frames for timestamp calculation
 }
 
 /**
@@ -382,13 +387,15 @@ AudioListener.prototype._onAudioData = function (data) {
   var payload = view.slice(1)
 
   if (isOpus && this._decoder && this._decoder._isOpus) {
-    // Decode Opus
+    // Decode Opus - use frame-based timestamp (20ms per frame = 20000 microseconds)
+    var timestampMicros = this._frameCount * 20000
     var chunk = new EncodedAudioChunk({
       type: 'key',
-      timestamp: performance.now() * 1000,
+      timestamp: timestampMicros,
       data: payload
     })
     this._decoder.decode(chunk)
+    this._frameCount++
   } else {
     // PCM: convert Int16 back to Float32
     var pcm = new Int16Array(payload.buffer, payload.byteOffset, payload.byteLength / 2)

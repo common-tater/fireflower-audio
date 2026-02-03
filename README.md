@@ -92,6 +92,12 @@ Each intermediate node automatically relays audio from its upstream to all downs
 | Jitter buffer | 40ms | Fixed 2-frame buffer |
 | **Total (1 P2P hop)** | **~80-130ms** | |
 
+## Audio Quality Notes
+
+**Browser audio processing is disabled** by default. AGC (Automatic Gain Control), noise suppression, and echo cancellation cause tremolo/pumping artifacts on sustained sounds. For broadcast audio, raw capture sounds better.
+
+If you need these features (e.g., for noisy environments), they can be re-enabled via getUserMedia constraints, but expect some audio artifacts.
+
 ## Server Transport Limitation
 
 When a node connects via the relay server (WebSocket), the underlying transport is TCP, not UDP. This means:

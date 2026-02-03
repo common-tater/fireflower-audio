@@ -23,7 +23,7 @@ class CaptureProcessor extends AudioWorkletProcessor {
     // VAD state
     this.speaking = false
     this.hangoverFrames = 0
-    this.HANGOVER_FRAMES = 5 // Keep sending for 5 frames after speech stops
+    this.HANGOVER_FRAMES = 15 // Keep sending for 15 frames (300ms) after speech stops
   }
 
   process (inputs, outputs) {

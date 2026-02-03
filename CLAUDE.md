@@ -73,6 +73,24 @@ if (audioContext.state === 'suspended') {
 }
 ```
 
+### Browser AGC causes tremolo/pumping artifacts
+Browser audio processing (AGC, noise suppression, echo cancellation) causes severe artifacts on sustained sounds - volume pulses in rapid waves. **Always disable these for broadcast audio**:
+```javascript
+navigator.mediaDevices.getUserMedia({
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false
+  }
+})
+```
+
+### VAD hangover must be long enough for natural decay
+The VAD (Voice Activity Detection) "hangover" is how long it keeps sending after speech drops below threshold. Too short (5 frames = 100ms) cuts off word endings. Use 15+ frames (300ms) for natural speech decay.
+
+### Timestamps must be sample-based, not wall clock
+WebCodecs `AudioData` and `EncodedAudioChunk` timestamps must increment based on sample count, not `performance.now()`. Using wall clock time causes decoder timing issues.
+
 ### WebCodecs Opus fallback
 Not all browsers support `AudioEncoder`/`AudioDecoder` with Opus. Check `typeof AudioEncoder !== 'undefined'` and fall back to PCM (Int16Array) for older browsers.
 
