@@ -113,9 +113,13 @@ AudioChannelManager.prototype.stop = function () {
 AudioChannelManager.prototype._wireUpstream = function (peer) {
   var self = this
 
-  // Check if _audio already exists (channel may have been created before we started)
-  if (peer._audio && peer._audio.readyState === 'open') {
-    peer._audio.onmessage = function (evt) {
+  // Check for _audio channel - may be on peer._audio or peer._channels._audio
+  // (fireflower stores custom channels in _channels for late-binding handlers)
+  var audioChannel = peer._audio || (peer._channels && peer._channels._audio)
+
+  if (audioChannel) {
+    peer._audio = audioChannel
+    audioChannel.onmessage = function (evt) {
       self._onAudioData(peer, evt.data)
     }
   }
