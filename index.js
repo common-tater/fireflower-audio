@@ -317,18 +317,26 @@ AudioListener.prototype.start = async function () {
   // Create audio context
   this._audioContext = new AudioContext({ sampleRate: 48000 })
 
-  // Load playback worklet
-  await this._audioContext.audioWorklet.addModule(this.workletUrl)
+  // Check for AudioWorklet support (Firefox mobile doesn't have it)
+  if (this._audioContext.audioWorklet) {
+    // Load playback worklet
+    await this._audioContext.audioWorklet.addModule(this.workletUrl)
 
-  // Create worklet node
-  this._workletNode = new AudioWorkletNode(this._audioContext, 'playback-processor', {
-    processorOptions: {
-      jitterBuffer: this.jitterBuffer
-    }
-  })
+    // Create worklet node
+    this._workletNode = new AudioWorkletNode(this._audioContext, 'playback-processor', {
+      processorOptions: {
+        jitterBuffer: this.jitterBuffer
+      }
+    })
 
-  // Connect to speakers
-  this._workletNode.connect(this._audioContext.destination)
+    // Connect to speakers
+    this._workletNode.connect(this._audioContext.destination)
+  } else {
+    // Fallback: ScriptProcessorNode for browsers without AudioWorklet
+    console.warn('[audio] AudioWorklet not supported, using ScriptProcessorNode fallback')
+    this._useScriptProcessor = true
+    this._setupScriptProcessorFallback()
+  }
 
   // Initialize decoder
   this._decoder = await this._createDecoder()
@@ -344,6 +352,76 @@ AudioListener.prototype.start = async function () {
 }
 
 /**
+ * Setup ScriptProcessorNode fallback for browsers without AudioWorklet
+ */
+AudioListener.prototype._setupScriptProcessorFallback = function () {
+  var self = this
+  var sampleRate = this._audioContext.sampleRate
+
+  // Ring buffer for jitter buffering
+  var bufferSize = sampleRate // 1 second max
+  this._ringBuffer = new Float32Array(bufferSize)
+  this._writeIndex = 0
+  this._readIndex = 0
+  this._bufferedSamples = 0
+  this._jitterBufferSamples = Math.floor(sampleRate * this.jitterBuffer / 1000)
+  this._buffering = true
+
+  // ScriptProcessorNode with 4096 buffer size
+  // Note: ScriptProcessorNode is deprecated but widely supported
+  this._scriptNode = this._audioContext.createScriptProcessor(4096, 0, 1)
+
+  this._scriptNode.onaudioprocess = function (evt) {
+    var output = evt.outputBuffer.getChannelData(0)
+
+    // Still buffering? Output silence
+    if (self._buffering) {
+      for (var i = 0; i < output.length; i++) {
+        output[i] = 0
+      }
+      return
+    }
+
+    // Fill output from ring buffer
+    for (var j = 0; j < output.length; j++) {
+      if (self._bufferedSamples > 0) {
+        output[j] = self._ringBuffer[self._readIndex]
+        self._readIndex = (self._readIndex + 1) % bufferSize
+        self._bufferedSamples--
+      } else {
+        output[j] = 0
+      }
+    }
+  }
+
+  this._scriptNode.connect(this._audioContext.destination)
+}
+
+/**
+ * Enqueue samples for ScriptProcessorNode fallback
+ */
+AudioListener.prototype._enqueueScriptProcessorSamples = function (samples) {
+  var bufferSize = this._ringBuffer.length
+
+  for (var i = 0; i < samples.length; i++) {
+    this._ringBuffer[this._writeIndex] = samples[i]
+    this._writeIndex = (this._writeIndex + 1) % bufferSize
+    this._bufferedSamples++
+
+    // Prevent overflow
+    if (this._bufferedSamples > bufferSize) {
+      this._readIndex = (this._readIndex + 1) % bufferSize
+      this._bufferedSamples--
+    }
+  }
+
+  // Stop buffering if we have enough
+  if (this._buffering && this._bufferedSamples >= this._jitterBufferSamples) {
+    this._buffering = false
+  }
+}
+
+/**
  * Stop listening
  */
 AudioListener.prototype.stop = function () {
@@ -352,6 +430,12 @@ AudioListener.prototype.stop = function () {
 
   // Stop channel manager
   this._channelManager.stop()
+
+  // Disconnect script processor if using fallback
+  if (this._scriptNode) {
+    this._scriptNode.disconnect()
+    this._scriptNode = null
+  }
 
   // Close audio context
   if (this._audioContext) {
@@ -366,6 +450,7 @@ AudioListener.prototype.stop = function () {
   }
 
   this._workletNode = null
+  this._useScriptProcessor = false
 }
 
 /**
@@ -451,12 +536,17 @@ AudioListener.prototype._onDecodedAudio = function (audioData) {
 }
 
 /**
- * Send samples to playback worklet
+ * Send samples to playback worklet (or fallback)
  */
 AudioListener.prototype._sendToWorklet = function (samples) {
-  if (!this._workletNode) return
-  this._workletNode.port.postMessage({
-    type: 'samples',
-    samples: samples
-  }, [samples.buffer])
+  if (this._useScriptProcessor) {
+    // ScriptProcessorNode fallback
+    this._enqueueScriptProcessorSamples(samples)
+  } else if (this._workletNode) {
+    // AudioWorklet path
+    this._workletNode.port.postMessage({
+      type: 'samples',
+      samples: samples
+    }, [samples.buffer])
+  }
 }
