@@ -55,6 +55,7 @@ var DEFAULT_PLAYBACK_WORKLET = '/worklets/playback-processor.js'
  * @param {number} opts.compressorThreshold - Compressor threshold in dB (default: -12)
  * @param {number} opts.compressorRatio - Compressor ratio (default: 12)
  * @param {number} opts.inputGain - Input gain multiplier (default: 1.0)
+ * @param {boolean} opts.agcEnabled - Enable browser auto gain control (default: false)
  */
 function AudioBroadcaster (node, opts) {
   if (!(this instanceof AudioBroadcaster)) return new AudioBroadcaster(node, opts)
@@ -74,6 +75,7 @@ function AudioBroadcaster (node, opts) {
   this.compressorThreshold = opts.compressorThreshold != null ? opts.compressorThreshold : -12
   this.compressorRatio = opts.compressorRatio || 12
   this.inputGain = opts.inputGain || 1.0
+  this.agcEnabled = opts.agcEnabled || false
 
   this._channelManager = new AudioChannelManager(node, { relay: false })
   this._audioContext = null
@@ -107,13 +109,15 @@ AudioBroadcaster.prototype.start = async function () {
     throw new Error('getUserMedia not supported. Broadcasting requires HTTPS on mobile browsers.')
   }
 
+  // AGC (autoGainControl) is disabled by default to avoid pumping artifacts
+  // Enable it for mobile devices where mic levels are too quiet
   this._stream = await mediaDevices.getUserMedia({
     audio: {
       sampleRate: this.sampleRate,
       channelCount: 1,
       echoCancellation: false,
       noiseSuppression: false,
-      autoGainControl: false
+      autoGainControl: this.agcEnabled
     }
   })
 
@@ -429,6 +433,11 @@ AudioListener.prototype.start = async function () {
 
   // Create audio context
   this._audioContext = new AudioContext({ sampleRate: 48000 })
+
+  // Resume audio context if suspended (browsers require user gesture)
+  if (this._audioContext.state === 'suspended') {
+    await this._audioContext.resume()
+  }
 
   // Check for AudioWorklet support (Firefox mobile doesn't have it)
   if (this._audioContext.audioWorklet) {

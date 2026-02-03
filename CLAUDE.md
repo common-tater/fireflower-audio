@@ -66,15 +66,16 @@ The `datachannel` event fires BEFORE the node's `connect` event. If an applicati
 AudioWorklet processors must be loaded via `audioContext.audioWorklet.addModule(url)` before creating `AudioWorkletNode`. The worklet files are served from `/worklets/` path by the example server.
 
 ### AudioContext suspension in browsers
-Browsers suspend `AudioContext` until user interaction. After `start()`, check and resume:
+Browsers suspend `AudioContext` until user interaction. The broadcaster gets implicit resume from `getUserMedia`, but the listener must explicitly resume after creating the context:
 ```javascript
 if (audioContext.state === 'suspended') {
   await audioContext.resume()
 }
 ```
+Without this, the listener's audio playback silently fails.
 
 ### Browser AGC causes tremolo/pumping artifacts
-Browser audio processing (AGC, noise suppression, echo cancellation) causes severe artifacts on sustained sounds - volume pulses in rapid waves. **Always disable these for broadcast audio**:
+Browser audio processing (AGC, noise suppression, echo cancellation) causes severe artifacts on sustained sounds - volume pulses in rapid waves. **Disable by default for broadcast audio**:
 ```javascript
 navigator.mediaDevices.getUserMedia({
   audio: {
@@ -84,6 +85,9 @@ navigator.mediaDevices.getUserMedia({
   }
 })
 ```
+
+### AGC option for quiet mobile mics
+Mobile phone mics without AGC capture at much lower levels than desktop mics. The `agcEnabled` option re-enables browser AGC when volume matters more than avoiding artifacts. Combined with high input gain (up to 30x), this handles quiet mobile mics. AGC works well for voice with natural pauses; avoid for music/sustained tones.
 
 ### VAD hangover must be long enough for natural decay
 The VAD (Voice Activity Detection) "hangover" is how long it keeps sending after speech drops below threshold. Too short (5 frames = 100ms) cuts off word endings. Use 15+ frames (300ms) for natural speech decay.
@@ -115,6 +119,9 @@ Mobile browsers (Firefox, Safari) require HTTPS for `navigator.mediaDevices.getU
 - **AudioContext user gesture**: Safari requires user interaction before AudioContext can play. The example UI handles this with explicit Start buttons.
 - **WebCodecs**: Safari 16.4+ supports WebCodecs. Older versions fall back to opus-decoder WASM.
 - **AudioWorklet**: Safari 14.1+ supports AudioWorklet. Older versions fall back to ScriptProcessorNode.
+
+### Form controls reset on page refresh
+Browsers preserve form input values across page refreshes. The example UI explicitly resets all controls to defaults on load to avoid confusing state. Controls are not persisted to localStorage.
 
 ### Frame size trade-off
 20ms frames (960 samples @ 48kHz) balance latency vs CPU overhead. 10ms doubles packet rate; 40ms adds noticeable latency.

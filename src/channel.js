@@ -116,12 +116,16 @@ AudioChannelManager.prototype._wireUpstream = function (peer) {
   // Check for _audio channel - may be on peer._audio or peer._channels._audio
   // (fireflower stores custom channels in _channels for late-binding handlers)
   var audioChannel = peer._audio || (peer._channels && peer._channels._audio)
+  console.log('[audio-channel] _wireUpstream peer:', peer.id?.slice(-8), '_audio:', !!peer._audio, '_channels._audio:', !!(peer._channels && peer._channels._audio))
 
   if (audioChannel) {
     peer._audio = audioChannel
     audioChannel.onmessage = function (evt) {
       self._onAudioData(peer, evt.data)
     }
+    console.log('[audio-channel] Wired upstream audio channel, state:', audioChannel.readyState)
+  } else {
+    console.warn('[audio-channel] No audio channel found on upstream peer')
   }
 }
 
@@ -130,6 +134,7 @@ AudioChannelManager.prototype._wireUpstream = function (peer) {
  */
 AudioChannelManager.prototype._wireIncomingAudioChannel = function (peer, channel) {
   var self = this
+  console.log('[audio-channel] datachannel event: wiring _audio from peer', peer.id?.slice(-8), 'state:', channel.readyState)
   peer._audio = channel
   channel.onmessage = function (evt) {
     self._onAudioData(peer, evt.data)
@@ -162,6 +167,7 @@ AudioChannelManager.prototype._wireDownstream = function (peer) {
  * Handle incoming audio data from upstream
  */
 AudioChannelManager.prototype._onAudioData = function (fromPeer, data) {
+  console.log('[audio-channel] Received audio:', data.byteLength, 'bytes from', fromPeer.id?.slice(-8))
   // Emit for local playback
   this.emit('audio', data, fromPeer)
 

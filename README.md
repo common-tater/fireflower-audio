@@ -140,7 +140,8 @@ new AudioBroadcaster(node, options)
 - `bitrate` (number): Opus bitrate in bps, default 24000
 - `vadEnabled` (boolean): Enable VAD, default true
 - `vadThreshold` (number): VAD RMS threshold, default 0.01
-- `inputGain` (number): Input gain multiplier, default 1.0
+- `inputGain` (number): Input gain multiplier, default 1.0 (up to 30x for quiet mics)
+- `agcEnabled` (boolean): Enable browser auto gain control, default false (use for quiet mobile mics)
 - `compressor` (boolean): Enable dynamics compressor, default false
 - `compressorThreshold` (number): Compressor threshold in dB, default -12
 - `compressorRatio` (number): Compressor ratio, default 12

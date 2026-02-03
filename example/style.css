@@ -271,6 +271,7 @@ input[type="range"] {
   background: var(--color-bg-input);
   border-radius: calc(var(--slider-height) / 2);
   outline: none;
+  touch-action: none; /* Prevent browser gestures from interfering */
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -320,6 +321,11 @@ input[type="range"]:disabled::-webkit-slider-thumb {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   line-height: 1.4;
+}
+
+.setting-hint.agc-hint {
+  color: var(--color-warning);
+  opacity: 0.8;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -511,5 +517,16 @@ button:disabled {
 
   .slider-row span {
     text-align: left;
+  }
+
+  /* Larger touch targets for mobile */
+  input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
   }
 }

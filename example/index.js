@@ -37,6 +37,31 @@ var compressorThresholdEl = document.getElementById('compressor-threshold')
 var compressorThresholdValueEl = document.getElementById('compressor-threshold-value')
 var compressorRatioEl = document.getElementById('compressor-ratio')
 var compressorRatioValueEl = document.getElementById('compressor-ratio-value')
+var agcEnabledEl = document.getElementById('agc-enabled')
+
+// Reset controls to defaults on page load (browser preserves form state across refresh)
+function resetControlsToDefaults () {
+  // Mode (listener by default, broadcaster if ?root=true)
+  modeBroadcaster.checked = isRoot
+  modeListener.checked = !isRoot
+
+  // Input & dynamics
+  inputGainEl.value = '1'
+  inputGainValueEl.textContent = '1.0x'
+  agcEnabledEl.checked = false
+  compressorEnabledEl.checked = false
+  compressorThresholdEl.value = '-12'
+  compressorThresholdValueEl.textContent = '-12 dB'
+  compressorRatioEl.value = '12'
+  compressorRatioValueEl.textContent = '12:1'
+
+  // VAD
+  vadEnabledEl.checked = true
+  vadThresholdEl.value = '0.01'
+  vadThresholdValueEl.textContent = 'High'
+  vadThresholdEl.disabled = false
+}
+resetControlsToDefaults()
 
 // Stats elements
 var vadSpan = document.querySelector('#vad-indicator .stat-value')
@@ -329,12 +354,6 @@ function stopVisualization () {
 // Initial curve draw
 drawCompressorCurve()
 
-// Set initial mode based on URL
-if (isRoot) {
-  modeBroadcaster.checked = true
-  modeListener.checked = false
-}
-
 // Show/hide audio settings based on mode
 var audioSettingsEl = document.getElementById('audio-settings')
 var vadSettingsEl = document.getElementById('vad-settings')
@@ -435,8 +454,12 @@ vadThresholdEl.oninput = function () {
   }
 }
 
-// Initialize VAD threshold disabled state based on VAD enabled
-vadThresholdEl.disabled = !vadEnabledEl.checked
+// AGC toggle handler (requires restart to take effect)
+agcEnabledEl.onchange = function () {
+  if (audio && audio._started) {
+    updateStatus('AGC change requires restart')
+  }
+}
 
 // Create fireflower node
 node = fireflower(firebase.db)(path, {
@@ -500,7 +523,8 @@ startBtn.onclick = async function () {
         compressor: compressorEnabledEl.checked,
         compressorThreshold: parseInt(compressorThresholdEl.value),
         compressorRatio: parseInt(compressorRatioEl.value),
-        inputGain: parseFloat(inputGainEl.value)
+        inputGain: parseFloat(inputGainEl.value),
+        agcEnabled: agcEnabledEl.checked
       }
       console.log('[audio] Broadcaster options:', opts)
       audio = new AudioBroadcaster(node, opts)
@@ -552,16 +576,21 @@ startBtn.onclick = async function () {
       })
 
       await audio.start()
+      console.log('[ui] Listener started, audioContext state:', audio._audioContext?.state)
 
       // Set up analyser for listener output meter
       // Handle both AudioWorklet and ScriptProcessorNode fallback
       var outputNode = audio._workletNode || audio._scriptNode
+      console.log('[ui] Output node:', outputNode ? 'present' : 'missing', 'worklet:', !!audio._workletNode, 'scriptNode:', !!audio._scriptNode)
       if (audio._audioContext && outputNode) {
         outputAnalyser = audio._audioContext.createAnalyser()
         outputAnalyser.fftSize = 2048
         outputAnalyserData = new Float32Array(outputAnalyser.fftSize)
         outputNode.connect(outputAnalyser)
         startVisualization()
+        console.log('[ui] Listener visualization started')
+      } else {
+        console.warn('[ui] Could not set up listener visualization - missing audioContext or outputNode')
       }
 
       // Handle unsupported codec warning
