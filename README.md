@@ -151,6 +151,26 @@ new AudioListener(node, options)
 - `audio`: Frame received (stats: `{ isOpus, size }`)
 - `drop`: Frame dropped due to backpressure
 
+## Running the Example
+
+```bash
+npm run dev  # Builds and starts server on port 8085
+```
+
+- **Broadcaster**: http://localhost:8085/?root=true
+- **Listener**: http://localhost:8085/
+
+To see nodes in the 3D visualizer, run [fireflower-visualizer](https://github.com/common-tater/fireflower-visualizer) and open http://localhost:8081/audio-tree
+
+## Testing
+
+```bash
+npm test           # Run all test scenarios
+node test/run.js 2 # Run specific scenario
+```
+
+Uses Puppeteer with fake audio devices.
+
 ## License
 
 MIT

@@ -50,7 +50,8 @@ if (isRoot) {
 node = fireflower(firebase.db)(path, {
   root: isRoot,
   K: 2,
-  serverFirst: true
+  serverFirst: true,
+  reportInterval: 2500
 })
 
 // Expose for debugging
