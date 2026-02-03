@@ -124,6 +124,8 @@ For best audio quality, nodes should upgrade to P2P connections as soon as possi
 - Browsers without AudioWorklet use ScriptProcessorNode for playback
 - Firefox mobile is fully supported via these fallbacks
 
+**Note:** Broadcasting (microphone access) requires HTTPS on mobile browsers. Listening works over HTTP.
+
 ## API
 
 ### AudioBroadcaster

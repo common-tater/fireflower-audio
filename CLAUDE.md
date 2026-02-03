@@ -108,6 +108,14 @@ The `opus-decoder` package adds ~100KB gzipped to the bundle but enables Opus pl
 ### Firefox mobile limitations
 Firefox mobile lacks AudioWorklet support. The library falls back to ScriptProcessorNode (deprecated but stable) for audio playback. Combined with the WASM Opus decoder, Firefox mobile gets full functionality with slightly higher latency.
 
+### HTTPS required for mobile broadcasting
+Mobile browsers (Firefox, Safari) require HTTPS for `navigator.mediaDevices.getUserMedia()`. Broadcasting from mobile only works over HTTPS or localhost. Listening works over HTTP since it doesn't need mic access. The library includes a polyfill for the older `navigator.getUserMedia` API but this also requires secure context on modern mobile browsers.
+
+### Safari considerations
+- **AudioContext user gesture**: Safari requires user interaction before AudioContext can play. The example UI handles this with explicit Start buttons.
+- **WebCodecs**: Safari 16.4+ supports WebCodecs. Older versions fall back to opus-decoder WASM.
+- **AudioWorklet**: Safari 14.1+ supports AudioWorklet. Older versions fall back to ScriptProcessorNode.
+
 ### Frame size trade-off
 20ms frames (960 samples @ 48kHz) balance latency vs CPU overhead. 10ms doubles packet rate; 40ms adds noticeable latency.
 

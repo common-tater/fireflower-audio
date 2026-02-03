@@ -3,6 +3,32 @@ var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
 var OpusDecoderLib = require('opus-decoder')
 
+// Polyfill for navigator.mediaDevices.getUserMedia (Firefox mobile, older browsers)
+function getMediaDevices () {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    return navigator.mediaDevices
+  }
+
+  // Fallback to older APIs
+  var getUserMedia = navigator.getUserMedia ||
+    navigator.webkitGetUserMedia ||
+    navigator.mozGetUserMedia ||
+    navigator.msGetUserMedia
+
+  if (!getUserMedia) {
+    return null
+  }
+
+  // Wrap in promise-based API
+  return {
+    getUserMedia: function (constraints) {
+      return new Promise(function (resolve, reject) {
+        getUserMedia.call(navigator, constraints, resolve, reject)
+      })
+    }
+  }
+}
+
 exports.AudioBroadcaster = AudioBroadcaster
 exports.AudioListener = AudioListener
 exports.AudioChannelManager = AudioChannelManager
@@ -76,7 +102,12 @@ AudioBroadcaster.prototype.start = async function () {
 
   // Request microphone access
   // Disable browser audio processing to avoid AGC pumping/tremolo artifacts
-  this._stream = await navigator.mediaDevices.getUserMedia({
+  var mediaDevices = getMediaDevices()
+  if (!mediaDevices) {
+    throw new Error('getUserMedia not supported. Broadcasting requires HTTPS on mobile browsers.')
+  }
+
+  this._stream = await mediaDevices.getUserMedia({
     audio: {
       sampleRate: this.sampleRate,
       channelCount: 1,
