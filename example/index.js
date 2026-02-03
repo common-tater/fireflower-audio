@@ -25,14 +25,28 @@ var startBtn = document.getElementById('start-btn')
 var stopBtn = document.getElementById('stop-btn')
 var modeBroadcaster = document.getElementById('mode-broadcaster')
 var modeListener = document.getElementById('mode-listener')
-var vadSpan = document.querySelector('#vad-indicator span')
-var framesSpan = document.querySelector('#frames-indicator span')
-var dropsSpan = document.querySelector('#drops-indicator span')
-var nodeIdSpan = document.querySelector('#node-id span')
-var nodeStateSpan = document.querySelector('#node-state span')
-var nodeTransportSpan = document.querySelector('#node-transport span')
-var upstreamSpan = document.querySelector('#upstream span')
-var downstreamSpan = document.querySelector('#downstream span')
+
+// Audio settings controls
+var compressorEnabledEl = document.getElementById('compressor-enabled')
+var vadEnabledEl = document.getElementById('vad-enabled')
+var inputGainEl = document.getElementById('input-gain')
+var inputGainValueEl = document.getElementById('input-gain-value')
+var compressorThresholdEl = document.getElementById('compressor-threshold')
+var compressorThresholdValueEl = document.getElementById('compressor-threshold-value')
+var compressorRatioEl = document.getElementById('compressor-ratio')
+var compressorRatioValueEl = document.getElementById('compressor-ratio-value')
+
+// Stats elements
+var vadSpan = document.querySelector('#vad-indicator .stat-value')
+var framesSpan = document.querySelector('#frames-indicator .stat-value')
+var dropsSpan = document.querySelector('#drops-indicator .stat-value')
+
+// Tree info elements
+var nodeIdSpan = document.getElementById('node-id-value')
+var nodeStateSpan = document.getElementById('node-state-value')
+var nodeTransportSpan = document.getElementById('node-transport-value')
+var upstreamSpan = document.getElementById('upstream-value')
+var downstreamSpan = document.getElementById('downstream-value')
 
 // State
 var node = null
@@ -44,6 +58,19 @@ var dropCount = 0
 if (isRoot) {
   modeBroadcaster.checked = true
   modeListener.checked = false
+}
+
+// Slider value display updates
+inputGainEl.oninput = function () {
+  inputGainValueEl.textContent = parseFloat(inputGainEl.value).toFixed(1) + 'x'
+}
+
+compressorThresholdEl.oninput = function () {
+  compressorThresholdValueEl.textContent = compressorThresholdEl.value + ' dB'
+}
+
+compressorRatioEl.oninput = function () {
+  compressorRatioValueEl.textContent = compressorRatioEl.value + ':1'
 }
 
 // Create fireflower node
@@ -103,18 +130,22 @@ startBtn.onclick = async function () {
     if (isBroadcaster) {
       updateStatus('Starting broadcaster...')
       audio = new AudioBroadcaster(node, {
-        vadEnabled: true,
-        vadThreshold: 0.01
+        vadEnabled: vadEnabledEl.checked,
+        vadThreshold: 0.01,
+        compressor: compressorEnabledEl.checked,
+        compressorThreshold: parseInt(compressorThresholdEl.value),
+        compressorRatio: parseInt(compressorRatioEl.value),
+        inputGain: parseFloat(inputGainEl.value)
       })
 
       audio.on('speaking', function () {
         vadSpan.textContent = 'Speaking'
-        vadSpan.parentElement.classList.add('active')
+        document.getElementById('vad-indicator').classList.add('active')
       })
 
       audio.on('silent', function () {
         vadSpan.textContent = 'Silent'
-        vadSpan.parentElement.classList.remove('active')
+        document.getElementById('vad-indicator').classList.remove('active')
       })
 
       await audio.start()
@@ -122,7 +153,7 @@ startBtn.onclick = async function () {
     } else {
       updateStatus('Starting listener...')
       audio = new AudioListener(node, {
-        jitterBuffer: 60 // 60ms jitter buffer
+        jitterBuffer: 60
       })
 
       audio.on('audio', function () {
@@ -158,7 +189,7 @@ stopBtn.onclick = function () {
   stopBtn.disabled = true
   updateStatus('Stopped')
   vadSpan.textContent = '-'
-  vadSpan.parentElement.classList.remove('active')
+  document.getElementById('vad-indicator').classList.remove('active')
 }
 
 // Start connecting

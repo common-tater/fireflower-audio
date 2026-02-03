@@ -8,39 +8,110 @@
 </head>
 <body>
   <div id="app">
-    <h1>Fireflower Audio</h1>
-    <p id="status">Connecting...</p>
+    <header>
+      <h1>Fireflower Audio</h1>
+      <p id="status">Connecting...</p>
+    </header>
 
-    <div id="controls">
-      <div class="control-group">
-        <label>
+    <section class="card" id="mode-section">
+      <h2>Mode</h2>
+      <div class="radio-group">
+        <label class="radio-label">
           <input type="radio" name="mode" value="broadcaster" id="mode-broadcaster">
+          <span class="radio-custom"></span>
           Broadcaster (Root)
         </label>
-        <label>
+        <label class="radio-label">
           <input type="radio" name="mode" value="listener" id="mode-listener" checked>
+          <span class="radio-custom"></span>
           Listener
         </label>
       </div>
+    </section>
 
-      <button id="start-btn" disabled>Start</button>
-      <button id="stop-btn" disabled>Stop</button>
-    </div>
+    <section class="card" id="audio-settings">
+      <h2>Audio Processing</h2>
+      <div class="setting-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="compressor-enabled">
+          <span class="toggle"></span>
+          Compressor / Limiter
+        </label>
+      </div>
+      <div class="setting-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="vad-enabled" checked>
+          <span class="toggle"></span>
+          Voice Activity Detection
+        </label>
+      </div>
+      <div class="slider-row">
+        <label for="input-gain">Input Gain</label>
+        <input type="range" id="input-gain" min="0.5" max="3" step="0.1" value="1">
+        <span id="input-gain-value">1.0x</span>
+      </div>
+      <div class="slider-row">
+        <label for="compressor-threshold">Threshold</label>
+        <input type="range" id="compressor-threshold" min="-40" max="0" step="1" value="-12">
+        <span id="compressor-threshold-value">-12 dB</span>
+      </div>
+      <div class="slider-row">
+        <label for="compressor-ratio">Ratio</label>
+        <input type="range" id="compressor-ratio" min="1" max="20" step="1" value="12">
+        <span id="compressor-ratio-value">12:1</span>
+      </div>
+    </section>
 
-    <div id="stats">
-      <div id="vad-indicator" class="indicator">VAD: <span>-</span></div>
-      <div id="frames-indicator" class="indicator">Frames: <span>0</span></div>
-      <div id="drops-indicator" class="indicator">Drops: <span>0</span></div>
-    </div>
+    <section class="card" id="transport-controls">
+      <div class="button-row">
+        <button id="start-btn" disabled>Start</button>
+        <button id="stop-btn" disabled>Stop</button>
+      </div>
+    </section>
 
-    <div id="tree-info">
-      <h3>Tree Status</h3>
-      <div id="node-id">Node ID: <span>-</span></div>
-      <div id="node-state">State: <span>-</span></div>
-      <div id="node-transport">Transport: <span>-</span></div>
-      <div id="upstream">Upstream: <span>-</span></div>
-      <div id="downstream">Downstream: <span>-</span></div>
-    </div>
+    <section class="card" id="stats">
+      <h2>Status</h2>
+      <div class="stat-grid">
+        <div class="stat" id="vad-indicator">
+          <span class="stat-label">VAD</span>
+          <span class="stat-value">-</span>
+        </div>
+        <div class="stat" id="frames-indicator">
+          <span class="stat-label">Frames</span>
+          <span class="stat-value">0</span>
+        </div>
+        <div class="stat" id="drops-indicator">
+          <span class="stat-label">Drops</span>
+          <span class="stat-value">0</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="tree-info">
+      <h2>Tree</h2>
+      <div class="info-grid">
+        <div class="info-row">
+          <span class="info-label">Node ID</span>
+          <span class="info-value" id="node-id-value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">State</span>
+          <span class="info-value" id="node-state-value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Transport</span>
+          <span class="info-value" id="node-transport-value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Upstream</span>
+          <span class="info-value" id="upstream-value">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Downstream</span>
+          <span class="info-value" id="downstream-value">-</span>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script src="build.js"></script>

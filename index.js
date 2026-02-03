@@ -24,6 +24,10 @@ var DEFAULT_PLAYBACK_WORKLET = '/worklets/playback-processor.js'
  * @param {boolean} opts.vadEnabled - Enable voice activity detection (default: true)
  * @param {number} opts.vadThreshold - VAD RMS threshold (default: 0.01)
  * @param {string} opts.workletUrl - URL to capture-processor.js worklet
+ * @param {boolean} opts.compressor - Enable dynamics compressor (default: false)
+ * @param {number} opts.compressorThreshold - Compressor threshold in dB (default: -12)
+ * @param {number} opts.compressorRatio - Compressor ratio (default: 12)
+ * @param {number} opts.inputGain - Input gain multiplier (default: 1.0)
  */
 function AudioBroadcaster (node, opts) {
   if (!(this instanceof AudioBroadcaster)) return new AudioBroadcaster(node, opts)
@@ -38,9 +42,17 @@ function AudioBroadcaster (node, opts) {
   this.vadThreshold = opts.vadThreshold || 0.01
   this.workletUrl = opts.workletUrl || DEFAULT_CAPTURE_WORKLET
 
+  // Compressor/gain options
+  this.compressorEnabled = opts.compressor || false
+  this.compressorThreshold = opts.compressorThreshold != null ? opts.compressorThreshold : -12
+  this.compressorRatio = opts.compressorRatio || 12
+  this.inputGain = opts.inputGain || 1.0
+
   this._channelManager = new AudioChannelManager(node, { relay: false })
   this._audioContext = null
   this._workletNode = null
+  this._compressorNode = null
+  this._gainNode = null
   this._stream = null
   this._encoder = null
   this._started = false
@@ -108,7 +120,29 @@ AudioBroadcaster.prototype.start = async function () {
 
   // Connect audio graph
   var source = this._audioContext.createMediaStreamSource(this._stream)
-  source.connect(this._workletNode)
+  var lastNode = source
+
+  // Optional: input gain
+  if (this.inputGain !== 1.0) {
+    this._gainNode = this._audioContext.createGain()
+    this._gainNode.gain.value = this.inputGain
+    lastNode.connect(this._gainNode)
+    lastNode = this._gainNode
+  }
+
+  // Optional: dynamics compressor (limiter-style)
+  if (this.compressorEnabled) {
+    this._compressorNode = this._audioContext.createDynamicsCompressor()
+    this._compressorNode.threshold.value = this.compressorThreshold
+    this._compressorNode.knee.value = 6        // Soft knee for natural sound
+    this._compressorNode.ratio.value = this.compressorRatio
+    this._compressorNode.attack.value = 0.003  // Fast attack (3ms)
+    this._compressorNode.release.value = 0.1   // Moderate release (100ms)
+    lastNode.connect(this._compressorNode)
+    lastNode = this._compressorNode
+  }
+
+  lastNode.connect(this._workletNode)
   // Don't connect to destination (no local monitoring)
 }
 
@@ -141,6 +175,8 @@ AudioBroadcaster.prototype.stop = function () {
   }
 
   this._workletNode = null
+  this._compressorNode = null
+  this._gainNode = null
   this._speaking = false
 }
 

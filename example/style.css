@@ -1,77 +1,257 @@
+/* Base */
 * {
   box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #0f0f1a;
+  --bg-card: #1a1a2e;
+  --bg-input: #252542;
+  --accent: #00d9ff;
+  --accent-hover: #00b8d9;
+  --success: #2ed573;
+  --danger: #ff4757;
+  --warning: #ffa502;
+  --text-primary: #eee;
+  --text-secondary: #888;
+  --border-radius: 8px;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 20px;
-  background: #1a1a2e;
-  color: #eee;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
+  line-height: 1.5;
 }
 
 #app {
-  max-width: 600px;
+  max-width: 480px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 8px;
 }
 
 h1 {
-  margin: 0 0 20px;
-  color: #00d9ff;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 #status {
-  padding: 10px 15px;
-  background: #16213e;
-  border-radius: 6px;
-  margin-bottom: 20px;
+  margin: 8px 0 0;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  font-size: 14px;
 }
 
-#controls {
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 16px;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Radio Group */
+.radio-group {
   display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 24px;
 }
 
-.control-group {
-  display: flex;
-  gap: 20px;
-}
-
-.control-group label {
+.radio-label {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  font-size: 15px;
+}
+
+.radio-label input[type="radio"] {
+  display: none;
+}
+
+.radio-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.radio-label input:checked + .radio-custom {
+  border-color: var(--accent);
+}
+
+.radio-label input:checked + .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* Toggle Switch */
+.setting-row {
+  margin-bottom: 12px;
+}
+
+.setting-row:last-child {
+  margin-bottom: 0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.toggle-label input {
+  display: none;
+}
+
+.toggle {
+  width: 44px;
+  height: 24px;
+  background: var(--bg-input);
+  border-radius: 12px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.toggle-label input:checked + .toggle {
+  background: var(--accent);
+}
+
+.toggle-label input:checked + .toggle::after {
+  left: 22px;
+  background: white;
+}
+
+/* Sliders */
+.slider-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 60px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.slider-row label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.slider-row span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  text-align: right;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* Buttons */
+.button-row {
+  display: flex;
+  gap: 12px;
 }
 
 button {
-  padding: 12px 24px;
-  font-size: 16px;
+  flex: 1;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 500;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 #start-btn {
-  background: #00d9ff;
-  color: #1a1a2e;
+  background: var(--accent);
+  color: var(--bg-primary);
 }
 
 #start-btn:hover:not(:disabled) {
-  background: #00b8d9;
+  background: var(--accent-hover);
 }
 
 #stop-btn {
-  background: #ff4757;
+  background: var(--danger);
   color: white;
 }
 
@@ -79,43 +259,86 @@ button:disabled {
   background: #e84118;
 }
 
-#stats {
+/* Stats */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat {
+  background: var(--bg-input);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+#vad-indicator.active .stat-value {
+  color: var(--success);
+}
+
+/* Tree Info */
+.info-grid {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.indicator {
-  padding: 10px 15px;
-  background: #16213e;
-  border-radius: 6px;
-  flex: 1;
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
 }
 
-.indicator span {
-  font-weight: bold;
-  color: #00d9ff;
+.info-label {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-#vad-indicator.speaking span {
-  color: #2ed573;
+.info-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--warning);
+  font-family: 'SF Mono', Monaco, monospace;
 }
 
-#tree-info {
-  padding: 15px;
-  background: #16213e;
-  border-radius: 6px;
-}
+/* Responsive */
+@media (max-width: 480px) {
+  body {
+    padding: 12px;
+  }
 
-#tree-info h3 {
-  margin: 0 0 10px;
-  color: #00d9ff;
-}
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
 
-#tree-info > div {
-  margin: 5px 0;
-}
+  .slider-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 
-#tree-info span {
-  color: #ffa502;
+  .slider-row label {
+    margin-bottom: -4px;
+  }
+
+  .slider-row span {
+    text-align: left;
+  }
 }
