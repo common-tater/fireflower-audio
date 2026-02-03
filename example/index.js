@@ -209,18 +209,19 @@ function drawLevelMeter () {
     return
   }
 
-  // Get audio level
-  analyser.getByteFrequencyData(analyserData)
-  var sum = 0
+  // Get audio level using RMS of time domain data
+  analyser.getFloatTimeDomainData(analyserData)
+  var sumSquares = 0
   for (var i = 0; i < analyserData.length; i++) {
-    sum += analyserData[i]
+    sumSquares += analyserData[i] * analyserData[i]
   }
-  var avg = sum / analyserData.length
-  var level = avg / 255 // 0-1
+  var rms = Math.sqrt(sumSquares / analyserData.length)
+  // Scale RMS to 0-1 range (RMS of 0.5 = very loud, 0.1 = normal speech)
+  var level = Math.min(1, rms * 3)
 
   // Convert to dB for compressor curve visualization (-60 to 0 range)
   // Add small epsilon to avoid log(0)
-  currentInputDb = level > 0.001 ? 20 * Math.log10(level) : -60
+  currentInputDb = rms > 0.0001 ? 20 * Math.log10(rms) : -60
   currentInputDb = Math.max(-60, Math.min(0, currentInputDb))
 
   // Draw meter background
@@ -270,14 +271,15 @@ function drawMeter (canvas, ctx, analyserNode, analyserDataArray) {
     return
   }
 
-  // Get audio level
-  analyserNode.getByteFrequencyData(analyserDataArray)
-  var sum = 0
+  // Get audio level using RMS of time domain data
+  analyserNode.getFloatTimeDomainData(analyserDataArray)
+  var sumSquares = 0
   for (var i = 0; i < analyserDataArray.length; i++) {
-    sum += analyserDataArray[i]
+    sumSquares += analyserDataArray[i] * analyserDataArray[i]
   }
-  var avg = sum / analyserDataArray.length
-  var level = avg / 255 // 0-1
+  var rms = Math.sqrt(sumSquares / analyserDataArray.length)
+  // Scale RMS to 0-1 range (RMS of 0.5 = very loud, 0.1 = normal speech)
+  var level = Math.min(1, rms * 3)
 
   // Draw meter background
   var barWidth = Math.min(30, w - 20)
@@ -519,14 +521,14 @@ startBtn.onclick = async function () {
       if (audio._audioContext && audio._gainNode) {
         // Input analyser (after gain, before compressor)
         analyser = audio._audioContext.createAnalyser()
-        analyser.fftSize = 256
-        analyserData = new Uint8Array(analyser.frequencyBinCount)
+        analyser.fftSize = 2048
+        analyserData = new Float32Array(analyser.fftSize)
         audio._gainNode.connect(analyser)
 
         // Output analyser (after compressor)
         outputAnalyser = audio._audioContext.createAnalyser()
-        outputAnalyser.fftSize = 256
-        outputAnalyserData = new Uint8Array(outputAnalyser.frequencyBinCount)
+        outputAnalyser.fftSize = 2048
+        outputAnalyserData = new Float32Array(outputAnalyser.fftSize)
         audio._compressorNode.connect(outputAnalyser)
 
         startVisualization()
@@ -554,8 +556,8 @@ startBtn.onclick = async function () {
       // Set up analyser for listener output meter
       if (audio._audioContext && audio._workletNode) {
         outputAnalyser = audio._audioContext.createAnalyser()
-        outputAnalyser.fftSize = 256
-        outputAnalyserData = new Uint8Array(outputAnalyser.frequencyBinCount)
+        outputAnalyser.fftSize = 2048
+        outputAnalyserData = new Float32Array(outputAnalyser.fftSize)
         audio._workletNode.connect(outputAnalyser)
         startVisualization()
       }
