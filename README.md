@@ -113,13 +113,16 @@ For best audio quality, nodes should upgrade to P2P connections as soon as possi
 
 ## Browser Support
 
-| Feature | Chrome | Firefox | Safari | Edge |
-|---------|--------|---------|--------|------|
-| WebCodecs Opus | 94+ | 130+ | 26+ | 94+ |
-| AudioWorklet | 66+ | 76+ | 14.1+ | 79+ |
-| getUserMedia | 53+ | 36+ | 11+ | 12+ |
+| Feature | Chrome | Firefox | Firefox Mobile | Safari | Edge |
+|---------|--------|---------|----------------|--------|------|
+| WebCodecs Opus | 94+ | 130+ | No | 16.4+ | 94+ |
+| AudioWorklet | 66+ | 76+ | No | 14.1+ | 79+ |
+| getUserMedia | 53+ | 36+ | 36+ | 11+ | 12+ |
 
-Browsers without WebCodecs Opus fall back to PCM encoding (higher bandwidth but works).
+**Fallbacks:**
+- Browsers without WebCodecs use [opus-decoder](https://www.npmjs.com/package/opus-decoder) (WASM) for Opus decoding
+- Browsers without AudioWorklet use ScriptProcessorNode for playback
+- Firefox mobile is fully supported via these fallbacks
 
 ## API
 

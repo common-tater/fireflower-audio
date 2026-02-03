@@ -98,7 +98,15 @@ The dynamics compressor is always created (with ratio=1 to bypass when disabled)
 WebCodecs `AudioData` and `EncodedAudioChunk` timestamps must increment based on sample count, not `performance.now()`. Using wall clock time causes decoder timing issues.
 
 ### WebCodecs Opus fallback
-Not all browsers support `AudioEncoder`/`AudioDecoder` with Opus. Check `typeof AudioEncoder !== 'undefined'` and fall back to PCM (Int16Array) for older browsers.
+Not all browsers support `AudioEncoder`/`AudioDecoder` with Opus (notably Firefox mobile). The library uses a tiered fallback:
+1. **WebCodecs** (best performance, Chrome/Edge/Safari)
+2. **opus-decoder WASM** (Firefox mobile, older browsers)
+3. **PCM only** (if both fail, Opus audio won't play)
+
+The `opus-decoder` package adds ~100KB gzipped to the bundle but enables Opus playback everywhere.
+
+### Firefox mobile limitations
+Firefox mobile lacks AudioWorklet support. The library falls back to ScriptProcessorNode (deprecated but stable) for audio playback. Combined with the WASM Opus decoder, Firefox mobile gets full functionality with slightly higher latency.
 
 ### Frame size trade-off
 20ms frames (960 samples @ 48kHz) balance latency vs CPU overhead. 10ms doubles packet rate; 40ms adds noticeable latency.

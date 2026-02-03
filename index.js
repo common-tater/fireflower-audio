@@ -1,6 +1,7 @@
 var AudioChannelManager = require('./src/channel')
 var EventEmitter = require('events').EventEmitter
 var inherits = require('inherits')
+var OpusDecoderLib = require('opus-decoder')
 
 exports.AudioBroadcaster = AudioBroadcaster
 exports.AudioListener = AudioListener
@@ -454,12 +455,12 @@ AudioListener.prototype.stop = function () {
 }
 
 /**
- * Create Opus decoder (or PCM fallback)
+ * Create Opus decoder (WebCodecs, opus-decoder library, or PCM fallback)
  */
 AudioListener.prototype._createDecoder = async function () {
   var self = this
 
-  // Check for WebCodecs Opus support
+  // Try WebCodecs first (best performance)
   if (typeof AudioDecoder !== 'undefined') {
     try {
       var decoder = new AudioDecoder({
@@ -477,14 +478,50 @@ AudioListener.prototype._createDecoder = async function () {
         numberOfChannels: 1
       })
 
+      console.log('[audio] Using WebCodecs AudioDecoder')
       decoder._isOpus = true
       return decoder
     } catch (err) {
-      console.warn('Opus decoder not supported, falling back to PCM:', err)
+      console.warn('WebCodecs Opus not supported:', err)
     }
   }
 
-  // PCM fallback
+  // Fallback to opus-decoder library (WASM)
+  try {
+    var OpusDecoder = OpusDecoderLib.OpusDecoder
+    var wasmDecoder = new OpusDecoder({
+      sampleRate: 48000,
+      channels: 1
+    })
+    await wasmDecoder.ready
+
+    console.log('[audio] Using opus-decoder WASM fallback')
+    return {
+      _isOpus: true,
+      _wasmDecoder: wasmDecoder,
+      decode: function (chunk) {
+        // Get the Opus frame data
+        var opusData = new Uint8Array(chunk.byteLength)
+        chunk.copyTo ? chunk.copyTo(opusData) : (opusData = new Uint8Array(chunk.data))
+
+        // Decode with opus-decoder
+        var result = wasmDecoder.decodeFrame(opusData)
+        if (result && result.samplesDecoded > 0) {
+          // result.channelData is array of Float32Arrays
+          var samples = result.channelData[0]
+          self._sendToWorklet(samples)
+        }
+      },
+      close: function () {
+        wasmDecoder.free()
+      }
+    }
+  } catch (err) {
+    console.warn('opus-decoder WASM fallback failed:', err)
+  }
+
+  // PCM-only fallback (no Opus support)
+  console.warn('[audio] No Opus decoder available, PCM only')
   return {
     _isOpus: false,
     decode: function () {},
@@ -504,14 +541,27 @@ AudioListener.prototype._onAudioData = function (data) {
 
   if (isOpus) {
     if (this._decoder && this._decoder._isOpus) {
-      // Decode Opus with WebCodecs
-      var timestampMicros = this._frameCount * 20000
-      var chunk = new EncodedAudioChunk({
-        type: 'key',
-        timestamp: timestampMicros,
-        data: payload
-      })
-      this._decoder.decode(chunk)
+      if (this._decoder._wasmDecoder) {
+        // WASM opus-decoder path
+        try {
+          var result = this._decoder._wasmDecoder.decodeFrame(payload)
+          if (result && result.samplesDecoded > 0) {
+            var samples = result.channelData[0]
+            this._sendToWorklet(samples)
+          }
+        } catch (err) {
+          console.warn('[audio] WASM decode error:', err)
+        }
+      } else {
+        // WebCodecs path
+        var timestampMicros = this._frameCount * 20000
+        var chunk = new EncodedAudioChunk({
+          type: 'key',
+          timestamp: timestampMicros,
+          data: payload
+        })
+        this._decoder.decode(chunk)
+      }
       this._frameCount++
     } else {
       // Can't decode Opus - drop frame and warn once
