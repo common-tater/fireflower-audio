@@ -36,7 +36,11 @@ node.on('connect', async () => {
     frameSize: 20,          // ms, default
     bitrate: 24000,         // bps, default
     vadEnabled: true,       // default
-    vadThreshold: 0.01      // RMS threshold, default
+    vadThreshold: 0.01,     // RMS threshold, default
+    inputGain: 1.0,         // gain multiplier, default
+    compressor: false,      // dynamics compressor, default
+    compressorThreshold: -12, // dB, default
+    compressorRatio: 12     // compression ratio, default
   })
 
   await broadcaster.start() // Requests mic permission
@@ -131,6 +135,10 @@ new AudioBroadcaster(node, options)
 - `bitrate` (number): Opus bitrate in bps, default 24000
 - `vadEnabled` (boolean): Enable VAD, default true
 - `vadThreshold` (number): VAD RMS threshold, default 0.01
+- `inputGain` (number): Input gain multiplier, default 1.0
+- `compressor` (boolean): Enable dynamics compressor, default false
+- `compressorThreshold` (number): Compressor threshold in dB, default -12
+- `compressorRatio` (number): Compressor ratio, default 12
 
 **Methods:**
 - `start()`: Start capturing and broadcasting (returns Promise)
