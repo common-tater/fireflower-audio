@@ -502,16 +502,26 @@ AudioListener.prototype._onAudioData = function (data) {
   var isOpus = view[0] === 0x01
   var payload = view.slice(1)
 
-  if (isOpus && this._decoder && this._decoder._isOpus) {
-    // Decode Opus - use frame-based timestamp (20ms per frame = 20000 microseconds)
-    var timestampMicros = this._frameCount * 20000
-    var chunk = new EncodedAudioChunk({
-      type: 'key',
-      timestamp: timestampMicros,
-      data: payload
-    })
-    this._decoder.decode(chunk)
-    this._frameCount++
+  if (isOpus) {
+    if (this._decoder && this._decoder._isOpus) {
+      // Decode Opus with WebCodecs
+      var timestampMicros = this._frameCount * 20000
+      var chunk = new EncodedAudioChunk({
+        type: 'key',
+        timestamp: timestampMicros,
+        data: payload
+      })
+      this._decoder.decode(chunk)
+      this._frameCount++
+    } else {
+      // Can't decode Opus - drop frame and warn once
+      if (!this._warnedOpus) {
+        this._warnedOpus = true
+        console.warn('[audio] Received Opus audio but no decoder available. Audio will not play.')
+        this.emit('unsupported', { codec: 'opus' })
+      }
+      return
+    }
   } else {
     // PCM: convert Int16 back to Float32
     var pcm = new Int16Array(payload.buffer, payload.byteOffset, payload.byteLength / 2)
