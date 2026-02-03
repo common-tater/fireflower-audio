@@ -1,89 +1,159 @@
-/* Base */
+/* ─────────────────────────────────────────────────────────────────────────────
+   CSS Variables & Design Tokens
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Colors - Background */
+  --color-bg-page: #0f0f1a;
+  --color-bg-card: #1a1a2e;
+  --color-bg-input: #252542;
+  --color-bg-hover: #2a2a4a;
+
+  /* Colors - Accent */
+  --color-accent: #00d9ff;
+  --color-accent-hover: #00b8d9;
+  --color-accent-muted: rgba(0, 217, 255, 0.1);
+
+  /* Colors - Semantic */
+  --color-success: #2ed573;
+  --color-danger: #ff4757;
+  --color-danger-hover: #e84118;
+  --color-warning: #ffa502;
+
+  /* Colors - Text */
+  --color-text: #eee;
+  --color-text-muted: #888;
+  --color-text-disabled: rgba(255, 255, 255, 0.3);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SF Mono', Monaco, Consolas, monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+  --line-height: 1.5;
+  --letter-spacing-wide: 0.5px;
+
+  /* Borders */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-full: 50%;
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.2s ease;
+
+  /* Component sizes */
+  --toggle-width: 44px;
+  --toggle-height: 24px;
+  --toggle-knob: 20px;
+  --slider-height: 6px;
+  --slider-thumb: 16px;
+  --control-size: 18px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Base Styles
+   ───────────────────────────────────────────────────────────────────────────── */
+
 * {
   box-sizing: border-box;
 }
 
-:root {
-  --bg-primary: #0f0f1a;
-  --bg-card: #1a1a2e;
-  --bg-input: #252542;
-  --accent: #00d9ff;
-  --accent-hover: #00b8d9;
-  --success: #2ed573;
-  --danger: #ff4757;
-  --warning: #ffa502;
-  --text-primary: #eee;
-  --text-secondary: #888;
-  --border-radius: 8px;
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-bg-page);
+  margin: 0;
+  padding: var(--space-xl);
+  min-height: 100vh;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  margin: 0;
-  padding: 20px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  min-height: 100vh;
-  line-height: 1.5;
-}
+/* ─────────────────────────────────────────────────────────────────────────────
+   Layout
+   ───────────────────────────────────────────────────────────────────────────── */
 
 #app {
   max-width: 480px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
-/* Header */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Header
+   ───────────────────────────────────────────────────────────────────────────── */
+
 header {
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
 }
 
 #status {
-  margin: 8px 0 0;
-  padding: 8px 16px;
-  background: var(--bg-card);
-  border-radius: var(--border-radius);
-  font-size: 14px;
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
 }
 
-/* Cards */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Card Component
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .card {
-  background: var(--bg-card);
-  border-radius: var(--border-radius);
-  padding: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
 }
 
 .card h2 {
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--letter-spacing-wide);
 }
 
-/* Radio Group */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Form Controls - Radio Group
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .radio-group {
   display: flex;
-  gap: 24px;
+  gap: var(--space-xl);
 }
 
 .radio-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   cursor: pointer;
-  font-size: 15px;
+  font-size: var(--font-size-md);
 }
 
 .radio-label input[type="radio"] {
@@ -91,16 +161,16 @@ h1 {
 }
 
 .radio-custom {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 50%;
+  width: var(--control-size);
+  height: var(--control-size);
+  border: 2px solid var(--color-text-muted);
+  border-radius: var(--radius-full);
   position: relative;
-  transition: all 0.2s;
+  transition: border-color var(--transition-base);
 }
 
 .radio-label input:checked + .radio-custom {
-  border-color: var(--accent);
+  border-color: var(--color-accent);
 }
 
 .radio-label input:checked + .radio-custom::after {
@@ -110,13 +180,16 @@ h1 {
   left: 3px;
   width: 8px;
   height: 8px;
-  background: var(--accent);
-  border-radius: 50%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
 }
 
-/* Toggle Switch */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Form Controls - Toggle Switch
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .setting-row {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .setting-row:last-child {
@@ -126,9 +199,9 @@ h1 {
 .toggle-label {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   cursor: pointer;
-  font-size: 15px;
+  font-size: var(--font-size-md);
 }
 
 .toggle-label input {
@@ -136,12 +209,13 @@ h1 {
 }
 
 .toggle {
-  width: 44px;
-  height: 24px;
-  background: var(--bg-input);
-  border-radius: 12px;
+  width: var(--toggle-width);
+  height: var(--toggle-height);
+  background: var(--color-bg-input);
+  border-radius: calc(var(--toggle-height) / 2);
   position: relative;
-  transition: all 0.2s;
+  transition: background var(--transition-base);
+  flex-shrink: 0;
 }
 
 .toggle::after {
@@ -149,40 +223,43 @@ h1 {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 20px;
-  height: 20px;
-  background: var(--text-secondary);
-  border-radius: 50%;
-  transition: all 0.2s;
+  width: var(--toggle-knob);
+  height: var(--toggle-knob);
+  background: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
 }
 
 .toggle-label input:checked + .toggle {
-  background: var(--accent);
+  background: var(--color-accent);
 }
 
 .toggle-label input:checked + .toggle::after {
-  left: 22px;
+  left: calc(var(--toggle-width) - var(--toggle-knob) - 2px);
   background: white;
 }
 
-/* Sliders */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Form Controls - Slider
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .slider-row {
   display: grid;
   grid-template-columns: 100px 1fr 60px;
   align-items: center;
-  gap: 12px;
-  margin-top: 12px;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .slider-row label {
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
 }
 
 .slider-row span {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent);
   text-align: right;
 }
 
@@ -190,20 +267,20 @@ input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 6px;
-  background: var(--bg-input);
-  border-radius: 3px;
+  height: var(--slider-height);
+  background: var(--color-bg-input);
+  border-radius: calc(var(--slider-height) / 2);
   outline: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 50%;
+  width: var(--slider-thumb);
+  height: var(--slider-thumb);
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform var(--transition-fast);
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
@@ -211,29 +288,93 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 50%;
+  width: var(--slider-thumb);
+  height: var(--slider-thumb);
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
   cursor: pointer;
   border: none;
 }
 
-/* Buttons */
+/* Disabled state */
+input[type="range"]:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+input[type="range"]:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+.slider-row:has(input:disabled) label,
+.slider-row:has(input:disabled) span {
+  opacity: 0.3;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Form Controls - Hints
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.setting-hint {
+  margin: var(--space-md) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Visualizations
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.viz-row {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.viz-row.viz-centered {
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.viz-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.viz-box canvas {
+  background: var(--color-bg-input);
+  border-radius: var(--radius-sm);
+}
+
+.viz-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Buttons
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .button-row {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 button {
   flex: 1;
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: 500;
+  padding: var(--space-base, 14px) var(--space-xl);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background var(--transition-base);
 }
 
 button:disabled {
@@ -241,88 +382,118 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-bg-page);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}
+
+/* Legacy button IDs (for backwards compatibility) */
 #start-btn {
-  background: var(--accent);
-  color: var(--bg-primary);
+  background: var(--color-accent);
+  color: var(--color-bg-page);
 }
 
 #start-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--color-accent-hover);
 }
 
 #stop-btn {
-  background: var(--danger);
+  background: var(--color-danger);
   color: white;
 }
 
 #stop-btn:hover:not(:disabled) {
-  background: #e84118;
+  background: var(--color-danger-hover);
 }
 
-/* Stats */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Stats Grid
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .stat {
-  background: var(--bg-input);
-  border-radius: 6px;
-  padding: 12px;
+  background: var(--color-bg-input);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
   text-align: center;
 }
 
 .stat-label {
   display: block;
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: var(--space-xs);
 }
 
 .stat-value {
   display: block;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
 }
 
+/* Active state modifier */
+.stat.active .stat-value,
 #vad-indicator.active .stat-value {
-  color: var(--success);
+  color: var(--color-success);
 }
 
-/* Tree Info */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Info Grid (Key-Value List)
+   ───────────────────────────────────────────────────────────────────────────── */
+
 .info-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
 }
 
 .info-label {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .info-value {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--warning);
-  font-family: 'SF Mono', Monaco, monospace;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-warning);
+  font-family: var(--font-mono);
 }
 
-/* Responsive */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Responsive
+   ───────────────────────────────────────────────────────────────────────────── */
+
 @media (max-width: 480px) {
   body {
-    padding: 12px;
+    padding: var(--space-md);
   }
 
   .stat-grid {
@@ -331,11 +502,11 @@ button:disabled {
 
   .slider-row {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: var(--space-sm);
   }
 
   .slider-row label {
-    margin-bottom: -4px;
+    margin-bottom: calc(-1 * var(--space-xs));
   }
 
   .slider-row span {

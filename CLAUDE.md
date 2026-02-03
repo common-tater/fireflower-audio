@@ -88,6 +88,12 @@ navigator.mediaDevices.getUserMedia({
 ### VAD hangover must be long enough for natural decay
 The VAD (Voice Activity Detection) "hangover" is how long it keeps sending after speech drops below threshold. Too short (5 frames = 100ms) cuts off word endings. Use 15+ frames (300ms) for natural speech decay.
 
+### VAD sensitivity is user-controllable
+The VAD threshold (RMS energy level) can be adjusted via the UI. Lower thresholds (0.005) are more sensitive and detect quieter speech, higher thresholds (0.05) require louder audio to trigger. The example UI maps these to "High/Medium/Low/Very Low" sensitivity labels. Updates are sent to the worklet via `postMessage`.
+
+### Compressor enables real-time adjustment
+The dynamics compressor is always created (with ratio=1 to bypass when disabled), allowing live enable/disable without recreating the audio graph. Threshold and ratio are also adjustable in real-time via `AudioParam.value`.
+
 ### Timestamps must be sample-based, not wall clock
 WebCodecs `AudioData` and `EncodedAudioChunk` timestamps must increment based on sample count, not `performance.now()`. Using wall clock time causes decoder timing issues.
 
