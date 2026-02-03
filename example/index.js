@@ -10,6 +10,12 @@ var firebaseConfig = require('../../fireflower-1/example/firebase-config')
 var fireflower = require('../../fireflower-1/')
 var AudioBroadcaster = require('..').AudioBroadcaster
 var AudioListener = require('..').AudioListener
+var LIB_DEFAULTS = require('..').DEFAULTS
+
+// ─── Example-specific overrides ──────────────────────────────────────────────
+var DEFAULTS = Object.assign({}, LIB_DEFAULTS, {
+  jitterBuffer: 60 // slightly higher than library default for demo stability
+})
 
 // Initialize Firebase
 var firebase = firebaseInit.init(firebaseConfig)
@@ -46,18 +52,18 @@ function resetControlsToDefaults () {
   modeListener.checked = !isRoot
 
   // Input & dynamics
-  inputGainEl.value = '1'
-  inputGainValueEl.textContent = '1.0x'
+  inputGainEl.value = String(DEFAULTS.inputGain)
+  inputGainValueEl.textContent = DEFAULTS.inputGain.toFixed(1) + 'x'
   agcEnabledEl.checked = false
   compressorEnabledEl.checked = false
-  compressorThresholdEl.value = '-12'
-  compressorThresholdValueEl.textContent = '-12 dB'
-  compressorRatioEl.value = '12'
-  compressorRatioValueEl.textContent = '12:1'
+  compressorThresholdEl.value = String(DEFAULTS.compressorThreshold)
+  compressorThresholdValueEl.textContent = DEFAULTS.compressorThreshold + ' dB'
+  compressorRatioEl.value = String(DEFAULTS.compressorRatio)
+  compressorRatioValueEl.textContent = DEFAULTS.compressorRatio + ':1'
 
   // VAD
   vadEnabledEl.checked = true
-  vadThresholdEl.value = '0.01'
+  vadThresholdEl.value = String(DEFAULTS.vadThreshold)
   vadThresholdValueEl.textContent = 'High'
   vadThresholdEl.disabled = false
 }
@@ -562,7 +568,7 @@ startBtn.onclick = async function () {
     } else {
       updateStatus('Starting listener...')
       audio = new AudioListener(node, {
-        jitterBuffer: 60
+        jitterBuffer: DEFAULTS.jitterBuffer
       })
 
       audio.on('audio', function () {

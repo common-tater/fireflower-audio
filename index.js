@@ -32,6 +32,19 @@ function getMediaDevices () {
 exports.AudioBroadcaster = AudioBroadcaster
 exports.AudioListener = AudioListener
 exports.AudioChannelManager = AudioChannelManager
+exports.DEFAULTS = {
+  sampleRate: DEFAULT_SAMPLE_RATE,
+  frameSize: DEFAULT_FRAME_SIZE,
+  bitrate: DEFAULT_BITRATE,
+  vadThreshold: DEFAULT_VAD_THRESHOLD,
+  jitterBuffer: DEFAULT_JITTER_BUFFER,
+  compressorThreshold: DEFAULT_COMPRESSOR_THRESHOLD,
+  compressorRatio: DEFAULT_COMPRESSOR_RATIO,
+  inputGain: 1.0,
+  vadEnabled: true,
+  compressorEnabled: false,
+  agcEnabled: false
+}
 
 inherits(AudioBroadcaster, EventEmitter)
 inherits(AudioListener, EventEmitter)
