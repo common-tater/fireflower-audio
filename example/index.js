@@ -60,17 +60,64 @@ if (isRoot) {
   modeListener.checked = false
 }
 
-// Slider value display updates
+// Show/hide audio settings based on mode
+var audioSettingsEl = document.getElementById('audio-settings')
+
+function updateSettingsVisibility () {
+  var isBroadcaster = modeBroadcaster.checked
+  audioSettingsEl.style.display = isBroadcaster ? 'block' : 'none'
+}
+
+modeBroadcaster.onchange = updateSettingsVisibility
+modeListener.onchange = updateSettingsVisibility
+updateSettingsVisibility()
+
+// Slider value display updates + real-time changes
 inputGainEl.oninput = function () {
-  inputGainValueEl.textContent = parseFloat(inputGainEl.value).toFixed(1) + 'x'
+  var val = parseFloat(inputGainEl.value)
+  inputGainValueEl.textContent = val.toFixed(1) + 'x'
+  // Update live if broadcasting
+  if (audio && audio._gainNode) {
+    audio._gainNode.gain.value = val
+  }
 }
 
 compressorThresholdEl.oninput = function () {
-  compressorThresholdValueEl.textContent = compressorThresholdEl.value + ' dB'
+  var val = parseInt(compressorThresholdEl.value)
+  compressorThresholdValueEl.textContent = val + ' dB'
+  // Update live if broadcasting
+  if (audio && audio._compressorNode) {
+    audio._compressorNode.threshold.value = val
+  }
 }
 
 compressorRatioEl.oninput = function () {
-  compressorRatioValueEl.textContent = compressorRatioEl.value + ':1'
+  var val = parseInt(compressorRatioEl.value)
+  compressorRatioValueEl.textContent = val + ':1'
+  // Update live if broadcasting and compressor enabled
+  if (audio && audio._compressorNode && compressorEnabledEl.checked) {
+    audio._compressorNode.ratio.value = val
+  }
+}
+
+// Toggle handlers for live enable/disable
+compressorEnabledEl.onchange = function () {
+  if (audio && audio._compressorNode) {
+    // ratio=1 effectively bypasses compressor
+    audio._compressorNode.ratio.value = compressorEnabledEl.checked
+      ? parseInt(compressorRatioEl.value)
+      : 1
+  }
+}
+
+vadEnabledEl.onchange = function () {
+  // VAD is in the worklet - send message to update
+  if (audio && audio._workletNode) {
+    audio._workletNode.port.postMessage({
+      type: 'config',
+      vadEnabled: vadEnabledEl.checked
+    })
+  }
 }
 
 // Create fireflower node
@@ -129,14 +176,16 @@ startBtn.onclick = async function () {
 
     if (isBroadcaster) {
       updateStatus('Starting broadcaster...')
-      audio = new AudioBroadcaster(node, {
+      var opts = {
         vadEnabled: vadEnabledEl.checked,
         vadThreshold: 0.01,
         compressor: compressorEnabledEl.checked,
         compressorThreshold: parseInt(compressorThresholdEl.value),
         compressorRatio: parseInt(compressorRatioEl.value),
         inputGain: parseFloat(inputGainEl.value)
-      })
+      }
+      console.log('[audio] Broadcaster options:', opts)
+      audio = new AudioBroadcaster(node, opts)
 
       audio.on('speaking', function () {
         vadSpan.textContent = 'Speaking'

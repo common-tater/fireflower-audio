@@ -24,6 +24,20 @@ class CaptureProcessor extends AudioWorkletProcessor {
     this.speaking = false
     this.hangoverFrames = 0
     this.HANGOVER_FRAMES = 15 // Keep sending for 15 frames (300ms) after speech stops
+
+    // Handle config updates from main thread
+    this.port.onmessage = this._onMessage.bind(this)
+  }
+
+  _onMessage (evt) {
+    if (evt.data.type === 'config') {
+      if (evt.data.vadEnabled !== undefined) {
+        this.vadEnabled = evt.data.vadEnabled
+      }
+      if (evt.data.vadThreshold !== undefined) {
+        this.vadThreshold = evt.data.vadThreshold
+      }
+    }
   }
 
   process (inputs, outputs) {

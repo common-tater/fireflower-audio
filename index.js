@@ -118,31 +118,26 @@ AudioBroadcaster.prototype.start = async function () {
     }
   }
 
-  // Connect audio graph
+  // Connect audio graph - always create gain and compressor for live control
   var source = this._audioContext.createMediaStreamSource(this._stream)
-  var lastNode = source
 
-  // Optional: input gain
-  if (this.inputGain !== 1.0) {
-    this._gainNode = this._audioContext.createGain()
-    this._gainNode.gain.value = this.inputGain
-    lastNode.connect(this._gainNode)
-    lastNode = this._gainNode
-  }
+  // Always create gain node for live adjustment
+  this._gainNode = this._audioContext.createGain()
+  this._gainNode.gain.value = this.inputGain
 
-  // Optional: dynamics compressor (limiter-style)
-  if (this.compressorEnabled) {
-    this._compressorNode = this._audioContext.createDynamicsCompressor()
-    this._compressorNode.threshold.value = this.compressorThreshold
-    this._compressorNode.knee.value = 6        // Soft knee for natural sound
-    this._compressorNode.ratio.value = this.compressorRatio
-    this._compressorNode.attack.value = 0.003  // Fast attack (3ms)
-    this._compressorNode.release.value = 0.1   // Moderate release (100ms)
-    lastNode.connect(this._compressorNode)
-    lastNode = this._compressorNode
-  }
+  // Always create compressor node for live adjustment
+  // When disabled, ratio=1 effectively bypasses it
+  this._compressorNode = this._audioContext.createDynamicsCompressor()
+  this._compressorNode.threshold.value = this.compressorThreshold
+  this._compressorNode.knee.value = 6
+  this._compressorNode.ratio.value = this.compressorEnabled ? this.compressorRatio : 1
+  this._compressorNode.attack.value = 0.003
+  this._compressorNode.release.value = 0.1
 
-  lastNode.connect(this._workletNode)
+  // Chain: source → gain → compressor → worklet
+  source.connect(this._gainNode)
+  this._gainNode.connect(this._compressorNode)
+  this._compressorNode.connect(this._workletNode)
   // Don't connect to destination (no local monitoring)
 }
 
