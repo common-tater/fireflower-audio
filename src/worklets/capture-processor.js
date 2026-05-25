@@ -20,12 +20,16 @@ class CaptureProcessor extends AudioWorkletProcessor {
     this.buffer = new Float32Array(this.samplesPerFrame)
     this.bufferIndex = 0
 
+    // Pre-allocated buffer pool to avoid per-frame Float32Array allocation
+    this.pool = []
+    for (var i = 0; i < 8; i++) this.pool.push(new Float32Array(this.samplesPerFrame))
+
     // VAD state
     this.speaking = false
     this.hangoverFrames = 0
     this.HANGOVER_FRAMES = 15 // Keep sending for 15 frames (300ms) after speech stops
 
-    // Handle config updates from main thread
+    // Handle messages from main thread (config updates + buffer returns)
     this.port.onmessage = this._onMessage.bind(this)
   }
 
@@ -37,6 +41,9 @@ class CaptureProcessor extends AudioWorkletProcessor {
       if (evt.data.vadThreshold !== undefined) {
         this.vadThreshold = evt.data.vadThreshold
       }
+    } else if (evt.data.type === 'return-buffer') {
+      // Main thread returned a transferred buffer; wrap it back into a Float32Array
+      this.pool.push(new Float32Array(evt.data.buffer))
     }
   }
 
@@ -84,13 +91,19 @@ class CaptureProcessor extends AudioWorkletProcessor {
       this.port.postMessage({ type: 'vad', speaking: false })
     }
 
+    // Detect speech onset (silent → speaking transition)
+    var onset = isSpeech && !this._wasSpeaking
+    this._wasSpeaking = this.speaking || this.hangoverFrames > 0
+
     // Only send if VAD disabled or currently speaking (includes hangover)
     if (!this.vadEnabled || this.speaking || this.hangoverFrames > 0) {
-      // Copy buffer (it will be reused)
-      var frame = new Float32Array(this.buffer)
+      // Grab a buffer from the pool (fallback to allocation if pool is exhausted)
+      var frame = this.pool.length > 0 ? this.pool.pop() : new Float32Array(this.samplesPerFrame)
+      frame.set(this.buffer)
       this.port.postMessage({
         type: 'frame',
-        samples: frame
+        samples: frame,
+        onset: onset && this.vadEnabled
       }, [frame.buffer])
     }
   }

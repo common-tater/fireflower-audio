@@ -185,7 +185,14 @@ AudioBroadcaster.prototype.start = async function () {
     // Handle messages from worklet
     this._workletNode.port.onmessage = function (evt) {
       if (evt.data.type === 'frame') {
+        self._currentOnset = !!evt.data.onset
         self._onFrame(evt.data.samples)
+        if (evt.data.samples.buffer.byteLength > 0) {
+          self._workletNode.port.postMessage(
+            { type: 'return-buffer', buffer: evt.data.samples.buffer },
+            [evt.data.samples.buffer]
+          )
+        }
       } else if (evt.data.type === 'vad') {
         var wasSpeaking = self._speaking
         self._speaking = evt.data.speaking
@@ -404,8 +411,10 @@ AudioBroadcaster.prototype._onEncodedChunk = function (chunk) {
  * Broadcast a frame to all downstream peers
  */
 AudioBroadcaster.prototype._broadcastFrame = function (buffer, isOpus) {
-  // Prepend 1-byte header: 0x01 = Opus, 0x00 = PCM
-  var header = new Uint8Array([isOpus ? 0x01 : 0x00])
+  // Prepend 1-byte header: bit 0 = codec (0=PCM, 1=Opus), bit 1 = speech onset
+  var headerByte = isOpus ? 0x01 : 0x00
+  if (this._currentOnset) headerByte |= 0x02
+  var header = new Uint8Array([headerByte])
   var frame = new Uint8Array(1 + buffer.byteLength)
   frame.set(header)
   frame.set(new Uint8Array(buffer), 1)
@@ -477,6 +486,14 @@ AudioListener.prototype.start = async function () {
 
     // Connect to speakers
     this._workletNode.connect(this._audioContext.destination)
+
+    // Listen for jitter stats from dynamic buffer
+    this._workletNode.port.onmessage = function (evt) {
+      if (evt.data.type === 'jitter-stats') {
+        self._jitterStats = evt.data
+        self.emit('jitter', evt.data)
+      }
+    }
   } else {
     // Fallback: ScriptProcessorNode for browsers without AudioWorklet
     console.warn('[audio] AudioWorklet not supported, using ScriptProcessorNode fallback')
