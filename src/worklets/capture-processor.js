@@ -91,6 +91,10 @@ class CaptureProcessor extends AudioWorkletProcessor {
       this.port.postMessage({ type: 'vad', speaking: false })
     }
 
+    // Detect speech onset (silent → speaking transition)
+    var onset = isSpeech && !this._wasSpeaking
+    this._wasSpeaking = this.speaking || this.hangoverFrames > 0
+
     // Only send if VAD disabled or currently speaking (includes hangover)
     if (!this.vadEnabled || this.speaking || this.hangoverFrames > 0) {
       // Grab a buffer from the pool (fallback to allocation if pool is exhausted)
@@ -98,7 +102,8 @@ class CaptureProcessor extends AudioWorkletProcessor {
       frame.set(this.buffer)
       this.port.postMessage({
         type: 'frame',
-        samples: frame
+        samples: frame,
+        onset: onset && this.vadEnabled
       }, [frame.buffer])
     }
   }

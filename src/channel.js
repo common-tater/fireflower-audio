@@ -27,6 +27,11 @@ function AudioChannelManager (node, opts) {
   this.relay = opts.relay !== false
   this._started = false
   this._boundHandlers = {}
+
+  // Drop rate tracking
+  this._dropCount = 0
+  this._sendCount = 0
+  this._dropRateInterval = null
 }
 
 /**
@@ -81,6 +86,16 @@ AudioChannelManager.prototype.start = function () {
     }
   }
   this.node.on('peerdisconnect', this._boundHandlers.peerdisconnect)
+
+  // Report drop rate every 10 seconds
+  this._dropRateInterval = setInterval(function () {
+    if (self._sendCount > 0) {
+      var dropRate = self._dropCount / self._sendCount
+      self.node.emit('dropRate', dropRate)
+      self._dropCount = 0
+      self._sendCount = 0
+    }
+  }, 10000)
 }
 
 /**
@@ -104,6 +119,11 @@ AudioChannelManager.prototype.stop = function () {
     this.node.removeListener('peerdisconnect', this._boundHandlers.peerdisconnect)
   }
   this._boundHandlers = {}
+
+  if (this._dropRateInterval) {
+    clearInterval(this._dropRateInterval)
+    this._dropRateInterval = null
+  }
 }
 
 /**
@@ -194,8 +214,17 @@ AudioChannelManager.prototype._sendToPeer = function (peer, data) {
   if (!peer._audio) return
   if (peer._audio.readyState !== 'open') return
 
-  // Drop if buffer is building up (old audio is toxic)
-  if (peer._audio.bufferedAmount > AUDIO_BACKPRESSURE_THRESHOLD) {
+  this._sendCount++
+
+  // Check onset bit (bit 1 of header byte) — never drop speech-onset frames
+  var isOnset = false
+  if (data instanceof ArrayBuffer && data.byteLength > 0) {
+    isOnset = (new Uint8Array(data)[0] & 0x02) !== 0
+  }
+
+  // Drop if buffer is building up (old audio is toxic) — but not onset frames
+  if (!isOnset && peer._audio.bufferedAmount > AUDIO_BACKPRESSURE_THRESHOLD) {
+    this._dropCount++
     this.emit('drop', peer)
     return
   }
