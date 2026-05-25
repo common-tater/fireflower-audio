@@ -186,6 +186,12 @@ AudioBroadcaster.prototype.start = async function () {
     this._workletNode.port.onmessage = function (evt) {
       if (evt.data.type === 'frame') {
         self._onFrame(evt.data.samples)
+        if (evt.data.samples.buffer.byteLength > 0) {
+          self._workletNode.port.postMessage(
+            { type: 'return-buffer', buffer: evt.data.samples.buffer },
+            [evt.data.samples.buffer]
+          )
+        }
       } else if (evt.data.type === 'vad') {
         var wasSpeaking = self._speaking
         self._speaking = evt.data.speaking
@@ -477,6 +483,14 @@ AudioListener.prototype.start = async function () {
 
     // Connect to speakers
     this._workletNode.connect(this._audioContext.destination)
+
+    // Listen for jitter stats from dynamic buffer
+    this._workletNode.port.onmessage = function (evt) {
+      if (evt.data.type === 'jitter-stats') {
+        self._jitterStats = evt.data
+        self.emit('jitter', evt.data)
+      }
+    }
   } else {
     // Fallback: ScriptProcessorNode for browsers without AudioWorklet
     console.warn('[audio] AudioWorklet not supported, using ScriptProcessorNode fallback')

@@ -24,6 +24,16 @@ class PlaybackProcessor extends AudioWorkletProcessor {
     this.buffering = true // Wait for buffer to fill initially
     this.underruns = 0
 
+    // Dynamic jitter buffer state
+    this.lastArrivalTime = 0
+    this.ewmaJitter = 0
+    this.alpha = 0.125 // EWMA smoothing constant (matches TCP SRTT)
+    this.minBufferMs = 20
+    this.maxBufferMs = 200
+    this.packetCount = 0
+    this.reportInterval = 50 // report stats every 50 packets (~1s at 20ms/frame)
+    this.targetBufferMs = this.jitterBufferMs
+
     // Handle incoming samples from main thread
     this.port.onmessage = this._onMessage.bind(this)
   }
@@ -35,6 +45,33 @@ class PlaybackProcessor extends AudioWorkletProcessor {
   }
 
   _enqueueSamples (samples) {
+    // Track inter-packet jitter
+    var now = currentTime * 1000 // AudioWorklet's currentTime in seconds → ms
+    if (this.lastArrivalTime > 0) {
+      var interval = now - this.lastArrivalTime
+      var jitter = Math.abs(interval - 20) // 20ms expected interval
+      this.ewmaJitter = this.ewmaJitter === 0 ? jitter : this.alpha * jitter + (1 - this.alpha) * this.ewmaJitter
+      this.targetBufferMs = Math.max(this.minBufferMs, Math.min(this.maxBufferMs, 2 * this.ewmaJitter))
+      // Growing: update target immediately so next buffering phase uses new size
+      var newTarget = Math.floor(sampleRate * this.targetBufferMs / 1000)
+      if (newTarget > this.jitterBufferSamples) {
+        this.jitterBufferSamples = newTarget
+      }
+      // Shrinking: defer to underrun (re-buffering uses updated target naturally)
+    }
+    this.lastArrivalTime = now
+
+    // Report stats periodically
+    this.packetCount++
+    if (this.packetCount % this.reportInterval === 0) {
+      this.port.postMessage({
+        type: 'jitter-stats',
+        currentJitter: Math.round(this.ewmaJitter * 10) / 10,
+        targetBuffer: Math.round(this.targetBufferMs),
+        underruns: this.underruns
+      })
+    }
+
     for (var i = 0; i < samples.length; i++) {
       this.ringBuffer[this.writeIndex] = samples[i]
       this.writeIndex = (this.writeIndex + 1) % this.ringBuffer.length
@@ -78,10 +115,11 @@ class PlaybackProcessor extends AudioWorkletProcessor {
         channel[j] = 0
         this.underruns++
 
-        // After many underruns, go back to buffering mode
+        // After many underruns, go back to buffering mode with current target
         if (this.underruns > 50) {
           this.buffering = true
           this.underruns = 0
+          this.jitterBufferSamples = Math.floor(sampleRate * this.targetBufferMs / 1000)
         }
       }
     }
